@@ -1,0 +1,38 @@
+# --- build / cache ---
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+*.o
+*.obj
+*.pch
+*.pdb
+*.ilk
+*.log
+
+# --- local env / IDE ---
+.vscode/
+.idea/
+.DS_Store
+
+# --- large artifacts ---
+models/**/*.gguf
+models/**/*.bin
+models/**/*.safetensors
+models/**/*.pth
+models/*.gguf
+
+runs/**/*.pt
+runs/**/*.onnx
+runs/**/checkpoints/**
+data/**
+
+# --- vendor binaries ---
+third_party/**/build/**
+third_party/**/bin/**
+third_party/**/lib/**
+third_party/**/lib64/**
+*.dylib
+*.so
+*.a
+*.dll
