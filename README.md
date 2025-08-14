@@ -16,6 +16,7 @@
 - macOS(Apple Silicon): LibTorch Metal 학습 미지원 → CPU 학습, llama.cpp는 Metal 가속(-ngl 99) 가능
 - LLM 파인튜닝은 PyTorch/Hugging Face + (Q)LoRA 또는 llama.cpp의 LoRA/QLoRA 경로를 사용
 - thirdparty의 libtorch는 본 프로그램 데모의 경우 `libtorch-macos-arm64-2.8.0.zip`를 사용
+- license 
 ---
 
 ## 목차
@@ -35,6 +36,7 @@
 13. 부록: 빠른 시작
 14. DeepSeek-Coder-V2-Lite Instruct 선택 및 실전 로그
 15. 부록: DeepSeek-Coder-V2-Lite Instruct GGUF 메타데이터 및 실행 로그 해설
+16. 부록: 서버 기동 및 라이선스 체크 동작
 
 ---
 
@@ -720,4 +722,95 @@ curl -sS -X POST http://localhost:18080/llm/generate \
 
 </details>
 
-# ml-engine
+---
+
+## 16 부록: 서버 기동 및 라이선스 체크 동작
+<details>
+<summary>라이선스 상세 설명 (클릭하여 펼치기)</summary>
+
+### 1. config/engine-config.json 구조
+
+```json
+{
+  "common": {
+    "api_port": 18080,
+    "license": "./license.json",
+    "public_key_path": "./public_key.pem"
+  }
+}
+```
+- `license`: 실제 라이선스 JSON 파일 경로
+- `public_key_path`: 서명 검증용 공개키 경로
+
+### 2. config/license.json 샘플
+
+```json
+{
+  "license_id": "trial-2025-08-14",
+  "issued_to": "user@example.com",
+  "issued_at": "2025-08-14T00:00:00Z",
+  "expires_at": "2025-09-14T00:00:00Z",
+  "public_key_path": "public_key.pem",
+  "signature": "<base64-signature>",
+  "features": ["api", "train", "predict"],
+  "notes": "Demo license for engine activation."
+}
+```
+
+### 3. config/public_key.pem 샘플
+
+```
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArandompublickeydemo
+-----END PUBLIC KEY-----
+```
+
+### 4. utils::loadEngineConfig (engine-config.json 파싱)
+- `license`, `public_key_path` 필드를 읽어 실제 경로로 변환
+- 구조체에 채워넣어 이후 엔진 초기화에 사용
+
+### 5. secure::loadLicenseFile (license.json 로딩)
+- 라이선스 파일을 통째로 읽어 문자열로 반환
+- 실제 환경에서는 암호화/서명 검증 필요
+
+### 6. engine.cpp의 라이선스 연동 흐름
+
+- config에서 license/public_key_path 경로를 읽어 실제 파일 경로로 보정
+- 라이선스 파일을 읽어 JSON 파싱
+- 라이선스 내 public_key_path가 있으면 우선 적용
+- secure::AntiPiracy, SignatureVerifier 등으로 무결성/서명 검증
+- features, expires_at 등 라이선스 필드 활용 가능
+
+#### 주요 코드 흐름
+```cpp
+// 1) 경로 보정 및 로그
+std::string license_json_path = m_config.common.license;
+std::string public_key_path = m_config.common.public_key_path;
+// 상대경로 → 절대경로 보정
+std::filesystem::path config_dir = std::filesystem::path(m_config_filepath).parent_path();
+std::filesystem::path abs_public_key_path = config_dir / public_key_path;
+public_key_path = abs_public_key_path.string();
+
+// 2) 라이선스 파일 로딩
+std::string license_json;
+secure::loadLicenseFile(license_json_path, license_json);
+
+// 3) 라이선스 JSON 파싱 및 public_key_path 우선 적용
+auto root = nlohmann::json::parse(license_json);
+if (root.contains("public_key_path")) {
+    std::filesystem::path license_dir = std::filesystem::path(license_json_path).parent_path();
+    std::filesystem::path abs_license_public_key_path = license_dir / root["public_key_path"].get<std::string>();
+    public_key_path = abs_license_public_key_path.string();
+}
+
+// 4) 무결성/서명 검증
+secure::AntiPiracy::verifyProgramIntegrity();
+secure::AntiPiracy::activateOnlineFromJson(license_json);
+secure::SignatureVerifier::verifySignatureFromJson(license_json, license_json_path);
+```
+
+### 7. 실제 활용 예시
+- 라이선스 만료, feature 제한, 서명 검증 등 엔진 동작 제어 가능
+- 예: `features`에 "train"이 없으면 학습 API 비활성화 등
+
+---
