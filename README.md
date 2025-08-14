@@ -15,7 +15,7 @@
 - 추론: llama.cpp 바이너리를 서브프로세스로 호출하여 GGUF 모델 실행
 - macOS(Apple Silicon): LibTorch Metal 학습 미지원 → CPU 학습, llama.cpp는 Metal 가속(-ngl 99) 가능
 - LLM 파인튜닝은 PyTorch/Hugging Face + (Q)LoRA 또는 llama.cpp의 LoRA/QLoRA 경로를 사용
-
+- thirdparty의 libtorch는 본 프로그램 데모의 경우 `libtorch-macos-arm64-2.8.0.zip`를 사용
 ---
 
 ## 목차
