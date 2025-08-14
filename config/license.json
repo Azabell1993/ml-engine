@@ -1,0 +1,10 @@
+{
+  "license_id": "trial-2025-08-14",
+  "issued_to": "user@example.com",
+  "issued_at": "2025-08-14T00:00:00Z",
+  "expires_at": "2025-09-14T00:00:00Z",
+  "public_key_path": "public_key.pem",
+  "signature": "<base64-signature>",
+  "features": ["api", "train", "predict"],
+  "notes": "Demo license for engine activation."
+}
