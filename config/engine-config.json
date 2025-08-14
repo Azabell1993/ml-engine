@@ -1,0 +1,7 @@
+{
+  "common": {
+    "api_port": 18080,
+    "license": "./license.json",
+    "public_key_path": "./public.pem"
+  }
+}
