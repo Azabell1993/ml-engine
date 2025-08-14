@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <torch/torch.h> // MNIST 직접 생성용
 #include "llm/llm_engine.hpp"
+#include "ml/transforms/ensure_channel.hpp"
 
 using nlohmann::json;
 
@@ -117,11 +118,14 @@ crow::response ApiServer::trainAll(const crow::request& req) {
       auto model = ml::Registry::get().create(name, cfg);
 
       auto train = torch::data::datasets::MNIST(cfg.dataset_root, torch::data::datasets::MNIST::Mode::kTrain)
-                     .map(torch::data::transforms::Normalize<>(0.1307, 0.3081))
-                     .map(torch::data::transforms::Stack<>());
+                      .map(ml::transforms::EnsureChannel{})                                          // (1,28,28) 보장
+                      .map(torch::data::transforms::Normalize<>(0.1307, 0.3081))    // 정규화
+                      .map(torch::data::transforms::Stack<>());                      // 배치 스택
+
       auto valid = torch::data::datasets::MNIST(cfg.dataset_root, torch::data::datasets::MNIST::Mode::kTest)
-                     .map(torch::data::transforms::Normalize<>(0.1307, 0.3081))
-                     .map(torch::data::transforms::Stack<>());
+                      .map(ml::transforms::EnsureChannel{})
+                      .map(torch::data::transforms::Normalize<>(0.1307, 0.3081))
+                      .map(torch::data::transforms::Stack<>());
 
       ml::Trainer::fit(model, cfg, train, valid);
       result.push_back({{"model",name},{"status","ok"}});

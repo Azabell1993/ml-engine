@@ -1,8 +1,14 @@
-# ml-engine: C++/LibTorch Training & llama.cpp Inference for macOS M2
+# ml-engine
+### C++/LibTorch Training & llama.cpp Inference for macOS M2
+
 
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20M2%20%7C%20Linux%20%7C%20CPU%2FGPU-blue.svg)]()
 [![Language](https://img.shields.io/badge/language-C%2B%2B%20%7C%20LibTorch%20%7C%20llama.cpp-orange.svg)]()
+
+<p align="right">
+<a href="#13-부록-빠른-시작" style="font-weight:bold;background:#e0f7fa;border-radius:8px;padding:6px 16px;text-decoration:none;">🚀 Quick Start 바로가기</a>
+</p>
 
 ---
 
@@ -19,24 +25,25 @@
 - license 
 ---
 
+
 ## 목차
 
-1. 특징
-2. 환경 및 기술 개요
-3. 프로젝트 구조
-4. 빌드 & 실행
-5. REST API
-6. 학습/추론 예시
-7. 모델 추천 & 양자화 가이드
-8. 운영 체크리스트
-9. 로드맵
-10. 자주 발생하는 이슈
-11. 용어 사전
-12. 라이선스
-13. 부록: 빠른 시작
-14. DeepSeek-Coder-V2-Lite Instruct 선택 및 실전 로그
-15. 부록: DeepSeek-Coder-V2-Lite Instruct GGUF 메타데이터 및 실행 로그 해설
-16. 부록: 서버 기동 및 라이선스 체크 동작
+1. [특징](#1-특징)
+2. [환경 및 기술 개요](#2-환경-및-기술-개요)
+3. [프로젝트 구조](#3-프로젝트-구조)
+4. [빌드 & 실행](#4-빌드--실행)
+5. [REST API](#5-rest-api)
+6. [학습/추론 예시](#6-학습추론-예시)
+7. [모델 추천 & 양자화 가이드](#7-모델-추천--양자화-가이드)
+8. [운영 체크리스트](#8-운영-체크리스트)
+9. [로드맵](#9-로드맵)
+10. [자주 발생하는 이슈](#10-자주-발생하는-이슈)
+11. [용어 사전](#11-용어-사전)
+12. [라이선스](#12-라이선스)
+13. [부록: 빠른 시작](#13-부록-빠른-시작)
+14. [DeepSeek-Coder-V2-Lite Instruct 선택 및 실전 로그](#14-deepseek-coder-v2-lite-instruct-선택-및-실전-로그)
+15. [부록: DeepSeek-Coder-V2-Lite Instruct GGUF 메타데이터 및 실행 로그 해설](#15-부록-deepseek-coder-v2-lite-instruct-gguf-메타데이터-및-실행-로그-해설)
+16. [부록: 서버 기동 및 라이선스 체크 동작](#16-부록-서버-기동-및-라이선스-체크-동작)
 
 ---
 
@@ -149,36 +156,138 @@ ls -lh runs/cnn_mnist
 
 ## 5. REST API
 
-### 서버 기동
-```sh
-build/ml_engine
-# Crow server on 0.0.0.0:18080
+### 5.1 서버 기동
+
+```bash
+# 서버 모드 (인자 없음)
+./build/ml_engine
+
+# 기본 설정 파일 위치
+# ./config/engine-config.json
+#   - port: HTTP 포트 (기본: 18080)
+#   - threads: 워커 스레드 수
+#   - routes: 활성화할 엔드포인트 목록
+#   - llm_backend: LLM 실행 경로 및 옵션
 ```
 
-### 엔드포인트
+### 서버 기동 시 출력 모습
+```
+[INFO] [2025-08-14 17:31:06] - Route: [1] /health
+[INFO] [2025-08-14 17:31:06] - Route: [1] /ml/models
+[INFO] [2025-08-14 17:31:06] - Route: [3] /ml/train-all
+[INFO] [2025-08-14 17:31:06] - Route: [3] /ml/train
+[INFO] [2025-08-14 17:31:06] - Route: [3] /llm/generate
+Crow API initialized at 0.0.0.0:18080
+Crow/1.2.1 server is running ... using 8 threads
+```
 
-| 엔드포인트      | Method | 설명                       |
-|-----------------|--------|----------------------------|
-| /health         | GET    | 서버 상태 확인 (200 OK)     |
-| /ml/models      | GET    | 등록된 학습 모델 목록       |
-| /ml/train-all   | POST   | 모든 모델 학습 시작         |
-| /ml/train       | POST   | 단일 모델 학습 시작 (JSON)  |
-| /llm/generate   | POST   | LLM 텍스트 생성 (llama.cpp) |
+---
 
-### 예시
-```sh
+### 5.2 엔드포인트 목록
+
+| 엔드포인트         | Method | 설명 |
+|--------------------|--------|------|
+| **`/health`**      | GET    | 서버 상태 확인 (`200 OK` 시 정상) |
+| **`/ml/models`**   | GET    | 현재 등록된 학습 가능한 ML 모델 목록 반환 |
+| **`/ml/train`**    | POST   | 지정 모델 1개 학습 시작 (JSON 요청 바디 필요) |
+| **`/ml/train-all`**| POST   | 등록된 모든 모델 학습 시작 |
+| **`/llm/generate`**| POST   | LLM(예: llama.cpp) 텍스트 생성 요청 |
+
+---
+
+### 5.3 요청/응답 예시
+
+#### 1) 체크
+```bash
 curl -s http://localhost:18080/health
-# {"service":"ml-engine","status":"ok"}
+# 응답
+{"service":"ml-engine","status":"ok"}
+```
 
+#### 2) 등록 모델 조회
+```bash
 curl -s http://localhost:18080/ml/models
-# {"models":["cnn_mnist"]}
+# 응답
+{"models":["cnn_mnist"]}
+```
 
+#### 3) 단일 모델 학습
+```bash
 curl -s -X POST http://localhost:18080/ml/train \
   -H "Content-Type: application/json" \
-  -d '{"model":"cnn_mnist","epochs":3,"device":"cpu"}'
-# {"model":"cnn_mnist","status":"ok"}
+  -d '{
+        "model": "cnn_mnist",
+        "epochs": 1,
+        "batch_size": 64,
+        "dataset_root": "./data/mnist",
+        "ckpt_dir": "./runs/cnn_mnist_from_api"
+      }'
+
+# 응답
+{
+  "model": "cnn_mnist",
+  "status": "ok"
+}
 ```
 
+#### 4) 전체 모델 학습
+```bash
+curl -s -X POST http://localhost:18080/ml/train-all \
+  -H "Content-Type: application/json" \
+  -d '{
+        "epochs": 1,
+        "batch_size": 64,
+        "dataset_root": "./data/mnist"
+      }'
+
+# 응답
+{
+  "results": [
+    {
+      "model": "cnn_mnist",
+      "status": "ok"
+    }
+  ]
+}
+```
+
+#### 5) LLM 텍스트 생성
+```bash
+curl -s -X POST http://localhost:18080/llm/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+        "backend": "llama",
+        "prompt": "Hello from ml-engine",
+        "extra_args": ["-m", "./models/model.gguf", "-n", "64"]
+      }'
+
+# 응답 예시 (LLM 백엔드 설정에 따라 다름)
+{"status":"ok","output":"Hello from ml-engine..."}
+```
+
+---
+
+### 5.4 실행 모드와 유효 인자
+
+| 명령 예시 | 동작 |
+|-----------|------|
+| `./ml_engine` | 서버 모드 (REST API 활성) |
+| `./ml_engine --help=server` | 서버 모드 가이드 출력 |
+| `./ml_engine train-cli` | 기본 모델(`cnn_mnist`) CLI 학습 |
+| `./ml_engine train-cli cnn_mnist` | 지정 모델 CLI 학습 |
+| `./ml_engine f` | 벤치마크 모드 실행 |
+| `./ml_engine tr` | ❌ 에러: 잘못된 인자 → 서버 미기동 |
+
+---
+
+### 5.5 트러블슈팅
+
+- **404 에러** → 해당 엔드포인트가 빌드에 포함되지 않았거나 구현되지 않음  
+- **포트 충돌** → `config/engine-config.json`에서 포트 변경  
+- **LLM 응답이 200인데 내용 없음** → 백엔드 경로와 `.gguf` 모델 파일 존재 여부 확인  
+- **`train-cli` 실행 시 데이터셋 오류** → `dataset_root` 경로에 MNIST 데이터 존재 여부 확인  
+
+  
 ---
 
 ## 6. 학습/추론 예시
@@ -343,31 +452,36 @@ curl -sS -X POST http://localhost:18080/llm/generate \
 
 ---
 
+
 ## 12. 라이선스
 
-MIT License
+<div align="left">
+<details open>
+<summary><strong>MIT License 전문</strong></summary>
 
-Copyright (c) 2025 …
+<blockquote style="background:#f5f5f5;border-radius:12px;padding:16px 24px;box-shadow:0 2px 8px #eee;">
 
+MIT License<br>
+Copyright (c) 2025 …<br><br>
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
+furnished to do so, subject to the following conditions:<br><br>
 The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
+all copies or substantial portions of the Software.<br><br>
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+THE SOFTWARE.<br><br>
 
-상용 모델/데이터 사용 시 각자 모델/데이터 라이선스를 별도로 준수해야 합니다(Llama 등).
+</blockquote>
+</details>
+</div>
 
 ---
 
