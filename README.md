@@ -44,7 +44,7 @@
 14. [DeepSeek-Coder-V2-Lite Instruct 선택 및 실전 로그](#14-deepseek-coder-v2-lite-instruct-선택-및-실전-로그)
 15. [부록: DeepSeek-Coder-V2-Lite Instruct GGUF 메타데이터 및 실행 로그 해설](#15-부록-deepseek-coder-v2-lite-instruct-gguf-메타데이터-및-실행-로그-해설)
 16. [부록: 서버 기동 및 라이선스 체크 동작](#16-부록-서버-기동-및-라이선스-체크-동작)
-
+17. [아키텍처 고도화 및 구현 계획(자체 LLM v1 로드맵)](#17-아키텍처-고도화-및-구현-계획자체-llm-v1-로드맵)
 ---
 
 ## 1. 특징
@@ -926,5 +926,298 @@ secure::SignatureVerifier::verifySignatureFromJson(license_json, license_json_pa
 ### 7. 실제 활용 예시
 - 라이선스 만료, feature 제한, 서명 검증 등 엔진 동작 제어 가능
 - 예: `features`에 "train"이 없으면 학습 API 비활성화 등
+</details>
 
 ---
+
+## 17. 아키텍처 고도화 및 구현 계획(자체 LLM v1 로드맵)
+
+자체 LLM v1 파이프라인과 서빙 아키텍처는 위의 단계별 체크리스트를 따라 점진적으로 확장됩니다.  
+각 단계(P0~P2)별로 기능 구현, 품질 평가, 운영/보안 강화가 병행되며,  
+최종적으로는 GGUF 기반의 경량 LLM을 안정적으로 서빙/학습/배포할 수 있는 C++ 엔진으로 완성됩니다.
+
+> 목적: `ml-engine`을 **안정적인 LLM 서빙 게이트웨이 + C++/LibTorch 학습 엔진**으로 완성하고,  
+> **자체 LLM v1**(소형 → 지시튜닝 → 정렬)을 배포 가능한 형태(GGUF)로 선순환 구축
+
+### 17.1 전체 구조(개요)
+
+```mermaid
+flowchart LR
+  subgraph Client
+    U[CLI / Web / PHP UI]
+  end
+
+  subgraph Serving[Crow C++ Serving Layer]
+    A[REST API / SSE]
+    B[Orchestrator\n(preset, routing, auth/rate-limit)]
+    C[Metrics/Logs\n(TPS, latencies, errors)]
+  end
+
+  subgraph Pool[LLM Runtime Pool]
+    P1[llama-server #1]
+    P2[llama-server #2]
+    Pn[llama-server #N]
+  end
+
+  subgraph Registry[Model Registry]
+    R1[GGUF(v0/v0.5/v1.0)]
+    R2[Tokenizer.json]
+    R3[Presets.json]
+  end
+
+  subgraph Training[Training Pipeline]
+    T1[Data Ingest/정제\n(dedup, PII, 샘플링)]
+    T2[Tokenizer 학습(BPE/32k)]
+    T3[Pretraining(≤300M)]
+    T4[SFT/QLoRA]
+    T5[DPO/ORPO]
+    T6[평가(LM Eval/HumanEval)]
+    T7[변환: safetensors→GGUF]
+  end
+
+  U --> A --> B -->|prompt/preset| Pool
+  Pool -->|stream tokens| A
+  B --> C
+  Registry --> Pool
+  Training -->|v1.0.gguf| Registry
+  B -->|model select| Registry
+
+  classDef box fill:#f8f9fa,stroke:#aaa,rx:6,ry:6;
+  class U,A,B,C,P1,P2,Pn,R1,R2,R3,T1,T2,T3,T4,T5,T6,T7 box;
+```
+---
+
+### 아키텍처 구성 및 데이터 흐름 설명
+
+#### 1. 사용자가 접속하는 부분 (Client)
+- **CLI / Web UI**  
+  사용자는 터미널 명령어, 웹페이지 기반 UI에서 AI에게 질문을 입력합니다.
+
+---
+
+#### 2. AI 응답을 처리하는 서버 (Serving Layer)
+- **REST API / SSE**  
+  사용자의 질문을 서버가 HTTP API 또는 실시간 스트리밍(SSE) 방식으로 받아 처리합니다.
+- **Orchestrator**  
+  어떤 모델을 사용할지 결정하고, 요청 처리, 속도 제한, 인증(로그인) 등을 담당합니다.
+- **Metrics/Logs**  
+  서버의 처리 시간, 에러 발생 여부 등 상태를 기록·모니터링합니다.
+
+---
+
+#### 3. 실제 모델이 돌아가는 공간 (LLM Runtime Pool)
+- **llama-server #1, #2, ...**  
+  동일한 AI 모델 프로그램을 여러 개 병렬로 실행하여, 동시에 많은 요청을 빠르게 처리합니다.
+
+---
+
+#### 4. 모델 저장소 (Model Registry)
+- **GGUF**  
+  AI가 답변할 수 있도록 훈련된 최종 모델 파일.
+- **Tokenizer.json**  
+  문장을 AI가 이해할 수 있는 토큰(단어 조각)으로 변환하는 사전.
+- **Presets.json**  
+  미리 저장된 대화 스타일이나 설정 값.
+
+---
+
+#### 5. 모델을 만드는 과정 (Training Pipeline)
+1. **데이터 수집·정제**  
+   중복 제거, 개인정보 삭제, 샘플링 등 데이터 정제.
+2. **Tokenizer 학습**  
+   문장을 토큰으로 나누는 방법을 훈련.
+3. **Pretraining**  
+   기본 언어 이해력 학습(예: 3억 파라미터 이하).
+4. **SFT/QLoRA**  
+   특정 작업에 맞춘 추가 훈련(예: 고객센터 답변 스타일).
+5. **DPO/ORPO**  
+   더 사람다운 답변 선택을 위한 정렬 훈련.
+6. **평가**  
+   자동 평가(LM Eval) 및 직접 테스트(HumanEval).
+7. **변환**  
+   모델 파일을 GGUF 형식으로 변환하여 빠르게 사용.
+
+---
+
+#### 데이터 흐름 요약
+
+1. 사용자가 질문 입력 (Client)
+2. 서버(Serving Layer)가 요청을 받아 조율(Orchestrator)
+3. 사용할 모델을 Model Registry에서 확인 후 LLM Runtime Pool에 전달
+4. 모델이 토큰 단위로 답변 생성 → 사용자에게 스트리밍
+5. 서버는 모든 요청과 응답을 기록(Metrics/Logs)
+6. 새로운 모델이 학습되면(Training Pipeline) Model Registry에 등록 → 서비스에 즉시 반영
+
+---
+
+> 💡 **한 줄 요약**  
+> 사용자가 질문하면, 서버가 어떤 AI 모델을 쓸지 정해서, 여러 개 켜져 있는 모델 중 하나에 맡기고, 모델은 토큰 단위로 답을 만들어 보내준다. 모델은 미리 데이터 정제·훈련 과정을 거쳐 준비되어 있으며, 필요하면 새 모델로 교체할 수 있다.
+
+⸻
+
+## 17.2 Serving/Orchestration 고도화
+	•	프로세스 스폰 제거: llama-cli 매요청 실행 → llama-server 상주로 전환
+	•	풀링: llama-server N개 라운드로빈 + 헬스체크/백프레셔(대기열 제한)
+	•	스트리밍: /llm/generate/stream (SSE)로 토큰 단위 전송
+	•	예시:
+
+```json
+curl -N -sS -X POST http://localhost:18080/llm/generate/stream \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Hello","preset":"code-lite"}'
+```
+  
+
+	•	프리셋 관리: presets/*.json (샘플러/컨텍스트/안전옵션)
+
+```json
+{
+  "name": "code-lite",
+  "n_threads": 8,
+  "n_ctx": 2048,
+  "temperature": 0.7,
+  "top_k": 40,
+  "top_p": 0.95,
+  "repeat_penalty": 1.1
+}
+```
+
+	•	프롬프트 캐싱/KV 재사용: 동일 prefix 재사용(응답체감 지연↓)
+	•	관측성: per-request 큐잉/프롬프트평가/생성평가 지연, TPS, 에러코드 표준화
+
+### 새 엔드포인트
+| 메서드 | 경로                  | 설명                                      |
+|--------|-----------------------|-------------------------------------------|
+| GET    | `/llm/models`         | 등록된 GGUF 모델/프리셋 목록               |
+| POST   | `/llm/generate/stream`| SSE 스트리밍 응답                          |
+| POST   | `/ml/predict`         | LibTorch 모델 배치 예측(학습 모델)         |
+| GET    | `/metrics`            | Prometheus 텍스트/JSON(선택)               |
+
+⸻
+
+## 17.3 설정 스키마 확장 (config/engine-config.json)
+```json
+{
+  "common": { "api_port": 18080, "license": "./license.json", "public_key_path": "./public_key.pem" },
+  "serving": {
+    "presets_dir": "./presets",
+    "default_preset": "code-lite",
+    "streaming": { "enabled": true, "keep_alive_ms": 15000 }
+  },
+  "llm_backend": {
+    "type": "llama_server",
+    "endpoints": [
+      { "url": "http://127.0.0.1:8081", "model": "./models/deepseek-coder-v2-lite-instruct-q4_k_m.gguf" },
+      { "url": "http://127.0.0.1:8082", "model": "./models/deepseek-coder-v2-lite-instruct-q4_k_m.gguf" }
+    ],
+    "timeout_ms": 60000,
+    "max_queue": 32
+  },
+  "security": {
+    "api_keys": ["dev-xxx", "ops-yyy"],
+    "rate_limit": { "rpm": 120, "burst": 30 }
+  }
+}
+```
+
+⸻
+### 17.4 자체 LLM v1을 향한 학습 파이프라인
+
+- **데이터**
+  - 코드(60%) / 일반(40%) + 한글 포함
+  - 중복 제거(dedup), PII 필터링, 길이 기반 샘플링
+
+- **토크나이저**
+  - BPE 32k (tokenizers/SentencePiece)
+  - 특수 토큰: BOS/EOS/EOG/PAD/FIM
+
+- **사전학습(≤300M)**
+  - Pre-LN + RoPE 구조
+  - bf16/mixed precision
+  - cosine learning rate + warmup
+  - gradient clipping
+  - 주기적 체크포인트 저장
+
+- **지시튜닝(SFT/QLoRA)**
+  - 커스텀 프롬프트/대화 템플릿 적용
+  - 비용 최소화 전략
+
+- **정렬(DPO/ORPO)**
+  - 선호쌍 수집(코딩/대화)
+  - 안전 거부 템플릿 적용
+
+- **평가**
+  - LM Eval Harness
+  - HumanEval/MBPP (pass@1/10 기준)
+
+- **변환/검증**
+  - PyTorch → safetensors → GGUF 변환
+  - llama.cpp로 로딩/속도/메모리 실측
+
+- **레지스트리**
+  - models/(gguf), tokenizer/, presets/ 버전 관리 및 롤백
+
+⸻
+## 17.5 보안 / 라이선스 / 운영
+
+- **Auth / Rate-limit**  
+  API 키 기반 인증, 라우트별 RPM(분당 요청)/Burst 제어
+
+- **라이선스 미들웨어**  
+  feature 플래그(train/predict/api)로 기능 제한, 만료 시 403 반환
+
+- **오류 표준화**  
+  파일 없음, 타임아웃, OOM 등 → 4xx/5xx 코드 및 기계판독 사유 제공
+
+- **메트릭**  
+  `/metrics` 엔드포인트에서 TPS, P95/P99 지연, 큐 길이, 에러 비율 노출
+
+- **배포 전략**  
+  프리셋/모델 카나리(일부 트래픽 분산), 헬스체크 실패 시 자동 제외
+
+---
+
+## 17.6 구현 체크리스트
+
+**P0**  
+- llama-server 상주 풀 구성  
+- 라운드로빈/헬스체크/백프레셔 구현  
+- SSE(`/llm/generate/stream`) 및 프리셋 로더(presets/*.json)  
+- `/llm/models` 목록 API  
+- 기본 metrics 로그(TPS/latency)  
+- engine-config.json 스키마 반영 및 유효성 검사
+
+**P1**  
+- 프롬프트 캐싱, KV 재사용  
+- 리트라이/타임아웃 정책  
+- Tokenizer 32k BPE 학습  
+- v0(≤300M) 사전학습 1~3epoch  
+- PyTorch→GGUF 변환 파이프라인  
+- llama.cpp 실측 문서화  
+- LM Eval 최소셋 자동화(PPL + 간단 QA)  
+- 아티팩트 업로드
+
+**P2**  
+- SFT/QLoRA + DPO/ORPO 정렬 → v1.0.gguf 산출  
+- 안전 필터/거부 템플릿  
+- 장기 컨텍스트(RoPE scaling) A/B 테스트  
+- 메트릭 Prometheus/Grafana 외부화  
+- 알람 임계치 설정
+
+---
+
+## 17.7 테스트 플랜
+
+- **서빙**  
+  단위(프리셋 파싱), 통합(풀 라우팅/백프레셔), 부하(hey/k6)
+
+- **LLM**  
+  모델 핫스왑(요청 중 교체), 고장 주입(엔드포인트 강제 실패 후 복구)
+
+- **학습**  
+  재현성(seed), 체크포인트 재시작, 손실/정확도 기준치 검증
+
+- **품질**  
+  HumanEval/MBPP pass@1/10 기준선 저장  
+  리그레션 감지
+
