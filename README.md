@@ -940,39 +940,38 @@ secure::SignatureVerifier::verifySignatureFromJson(license_json, license_json_pa
 > **자체 LLM v1**(소형 → 지시튜닝 → 정렬)을 배포 가능한 형태(GGUF)로 선순환 구축
 
 ### 17.1 전체 구조(개요)
-
-```mermaid
+```
 flowchart LR
   subgraph Client
-    U[CLI / Web / PHP UI]
+    U["CLI / Web / PHP UI"]
   end
 
   subgraph Serving[Crow C++ Serving Layer]
-    A[REST API / SSE]
-    B[Orchestrator\n(preset, routing, auth/rate-limit)]
-    C[Metrics/Logs\n(TPS, latencies, errors)]
+    A["REST API / SSE"]
+    B["Orchestrator<br/>(preset, routing, auth / rate-limit)"]
+    C["Metrics/Logs<br/>(TPS, latencies, errors)"]
   end
 
   subgraph Pool[LLM Runtime Pool]
-    P1[llama-server #1]
-    P2[llama-server #2]
-    Pn[llama-server #N]
+    P1["llama-server #1"]
+    P2["llama-server #2"]
+    Pn["llama-server #N"]
   end
 
   subgraph Registry[Model Registry]
-    R1[GGUF(v0/v0.5/v1.0)]
-    R2[Tokenizer.json]
-    R3[Presets.json]
+    R1["GGUF (v0 / v0.5 / v1.0)"]
+    R2["Tokenizer.json"]
+    R3["Presets.json"]
   end
 
   subgraph Training[Training Pipeline]
-    T1[Data Ingest/정제\n(dedup, PII, 샘플링)]
-    T2[Tokenizer 학습(BPE/32k)]
-    T3[Pretraining(≤300M)]
-    T4[SFT/QLoRA]
-    T5[DPO/ORPO]
-    T6[평가(LM Eval/HumanEval)]
-    T7[변환: safetensors→GGUF]
+    T1["Data Ingest/정제<br/>(dedup, PII, 샘플링)"]
+    T2["Tokenizer 학습 (BPE/32k)"]
+    T3["Pretraining (≤300M)"]
+    T4["SFT/QLoRA"]
+    T5["DPO/ORPO"]
+    T6["평가 (LM Eval/HumanEval)"]
+    T7["변환: safetensors → GGUF"]
   end
 
   U --> A --> B -->|prompt/preset| Pool
@@ -984,7 +983,7 @@ flowchart LR
 
   classDef box fill:#f8f9fa,stroke:#aaa,rx:6,ry:6;
   class U,A,B,C,P1,P2,Pn,R1,R2,R3,T1,T2,T3,T4,T5,T6,T7 box;
-```
+  ```
 ---
 
 ### 아키텍처 구성 및 데이터 흐름 설명
@@ -1059,7 +1058,8 @@ flowchart LR
 	•	프로세스 스폰 제거: llama-cli 매요청 실행 → llama-server 상주로 전환
 	•	풀링: llama-server N개 라운드로빈 + 헬스체크/백프레셔(대기열 제한)
 	•	스트리밍: /llm/generate/stream (SSE)로 토큰 단위 전송
-	•	예시:
+
+#### 예시:
 
 ```json
 curl -N -sS -X POST http://localhost:18080/llm/generate/stream \
@@ -1068,7 +1068,7 @@ curl -N -sS -X POST http://localhost:18080/llm/generate/stream \
 ```
   
 
-	•	프리셋 관리: presets/*.json (샘플러/컨텍스트/안전옵션)
+#### 프리셋 관리: presets/*.json (샘플러/컨텍스트/안전옵션)
 
 ```json
 {
