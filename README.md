@@ -22,7 +22,8 @@
 - macOS(Apple Silicon): LibTorch Metal 학습 미지원 → CPU 학습, llama.cpp는 Metal 가속(-ngl 99) 가능
 - LLM 파인튜닝은 PyTorch/Hugging Face + (Q)LoRA 또는 llama.cpp의 LoRA/QLoRA 경로를 사용
 - thirdparty의 libtorch는 본 프로그램 데모의 경우 `libtorch-macos-arm64-2.8.0.zip`를 사용
-- license 
+- 라이선스: 엔진은 `config/license.json` 및 공개키(`public_key.pem`)로 기능 제한/만료/서명 검증을 지원하며, 라이선스 만료 또는 feature 제한 시 API/학습 기능이 비활성화됩니다.
+
 ---
 
 
@@ -73,47 +74,45 @@
 ---
 
 ## 3. 프로젝트 구조
-
-```text
-ml-engine/
-├─ CMakeLists.txt
-├─ third_party/
-│  └─ libtorch/
-├─ include/
-│  ├─ log.h
-│  ├─ safe_arithmetic_ops.h
-│  ├─ api/
-│  │  ├─ api_server.hpp
-│  │  └─ handler/handler_base.hpp
-│  ├─ engine/
-│  │  ├─ engine.hpp
-│  │  └─ engine_state.hpp
-│  └─ ml/
-│     ├─ model_base.hpp
-│     ├─ registry.hpp
-│     ├─ trainer.hpp
-│     └─ dataset.hpp
-├─ src/
-│  ├─ main.cpp
-│  ├─ api/
-│  │  ├─ api_server.cpp
-│  │  └─ handler/handler_base.cpp
-│  ├─ engine/
-│  │  └─ engine.cpp
-│  └─ ml/
-│     ├─ registry.cpp
-│     ├─ trainer.cpp
-│     ├─ dataset.cpp
-│     └─ models/
-│        └─ cnn_mnist/
-│           ├─ model.hpp
-│           └─ model.cpp
-├─ config/
-│  ├─ engine-config.json
-├─ php/
-│  ├─ index.php
-│  └─ .env.php.dist
-└─ README.md
+```markdown
+mac@azabell-mac ml-engine % tree -I third_party 
+.
+├── build                # CMake 빌드 결과물(실행파일, 오브젝트, 캐시 등)
+│   ├── cmake_install.cmake
+│   ├── CMakeCache.txt
+│   ├── CMakeFiles
+│   │   └── ...         # 빌드 중간 파일 및 오브젝트(.o)
+│   ├── Makefile
+│   └── ml_engine       # 빌드된 실행파일(메인 엔진)
+├── build.sh             # 빌드 스크립트(CMake 빌드 자동화)
+├── CMakeLists.txt       # CMake 프로젝트 설정 파일
+├── config               # 설정 및 라이선스 관련 파일
+│   ├── engine-config.json   # 엔진/서버 설정
+│   ├── license.json         # 라이선스 정보
+│   └── public_key.pem       # 라이선스 서명 검증용 공개키
+├── data                 # 데이터셋 폴더(MNIST 등)
+│   └── mnist            # MNIST 원본 데이터(이미지/레이블)
+├── include              # C++ 헤더 파일(엔진/모델/API 등)
+│   ├── api              # REST API 서버/핸들러 헤더
+│   ├── engine           # 엔진 상태/핵심 로직 헤더
+│   ├── llm              # LLM 추론 관련 헤더 및 샘플 JSON
+│   ├── ml               # ML 모델/데이터셋/트레이너 헤더
+│   └── ...              # 기타 유틸리티 헤더
+├── models               # LLM 모델 파일(GGUF 등)
+│   └── deepseek-coder-v2-lite-instruct-q4_k_m.gguf
+├── README copy.md       # README 백업본
+├── README.md            # 프로젝트 설명서
+├── run_cli.sh           # CLI 실행 스크립트(학습 등)
+├── run_server.sh        # 서버 실행 스크립트
+├── runs                 # 학습 결과(체크포인트 등)
+│   └── cnn_mnist        # cnn_mnist 모델 체크포인트(.pt)
+├── src                  # C++ 소스코드(엔진/모델/API 등)
+│   ├── api              # REST API 서버/핸들러 구현
+│   ├── engine           # 엔진 핵심 로직 구현
+│   ├── llm              # LLM 추론 엔진 구현
+│   ├── main.cpp         # 메인 진입점
+│   └── ml               # ML 모델/데이터셋/트레이너 구현
+38 directories, 84 files
 ```
 
 ---
