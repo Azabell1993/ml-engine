@@ -433,21 +433,21 @@ curl -sS -X POST http://localhost:18080/llm/generate \
 
 ## 11. 용어 사전
 
-- n_ctx: 컨텍스트 길이(토큰)
-- -n / n_predict: 생성할 최대 토큰 수
-- n_threads: CPU 스레드 수
-- -ngl: GPU(Metal) 오프로딩 레이어 수 (0=CPU, 99=최대)
-- -c/-b: 컨텍스트/배치 크기
-- --simple-io: 단순 STDIO I/O
-- -no-cnv: chat template 비활성화
-- temperature/top_k/top_p: 샘플링 제어
-- repeat_penalty: 반복 억제
-- BOS/EOS/EOG/PAD: 시작/끝/생성종료/패딩 토큰
-- FIM: Fill-In-the-Middle 토큰 (PRE/SUF/MID)
-- rope(yarn): RoPE 위치 인코딩(+긴 컨텍스트 스케일링)
-- kv cache: K/V 캐시(메모리↔속도 트레이드오프)
-- prompt eval / eval time: 프롬프트 처리/생성 토큰당 소요
-- TPS: 초당 생성 토큰 수
+- `n_ctx` : 컨텍스트 길이(토큰)
+- `-n / n_predict` : 생성할 최대 토큰 수
+- `n_threads` : CPU 스레드 수
+- `-ngl` : GPU(Metal) 오프로딩 레이어 수 (0=CPU, 99=최대)
+- `-c/-b` : 컨텍스트/배치 크기
+- `--simple-io` : 단순 STDIO I/O
+- `-no-cnv` : chat template 비활성화
+- `temperature/top_k/top_p` : 샘플링 제어
+- `repeat_penalty` : 반복 억제
+- `BOS/EOS/EOG/PAD` : 시작/끝/생성종료/패딩 토큰
+- `FIM` : Fill-In-the-Middle 토큰 (PRE/SUF/MID)
+- `rope(yarn)` : RoPE 위치 인코딩(+긴 컨텍스트 스케일링)
+- `kv cache` : K/V 캐시(메모리↔속도 트레이드오프)
+- `prompt eval / eval time` : 프롬프트 처리/생성 토큰당 소요
+- `TPS` : 초당 생성 토큰 수
 
 ---
 
@@ -1176,7 +1176,7 @@ curl -N -sS -X POST http://localhost:18080/llm/generate/stream \
 
 ---
 
-## 17.6 구현 체크리스트
+## 17.6 추후 구현 체크리스트
 
 **P0**  
 - llama-server 상주 풀 구성  
