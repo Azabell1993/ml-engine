@@ -344,7 +344,7 @@ curl -sS -X POST http://localhost:18080/llm/generate \
   -H "Content-Type: application/json" \
   -d '{
     "backend": "llama",
-    "prompt": "C++로 멀티스레드 예제 작성해줘. 코드 블록으로만 답해줘.",
+    "prompt": "C++로 helloworld를 출력하는 코드를 단일 블록으로만 답해줘.",
     "llama_exec_path": "/Users/mac/Desktop/workspace/miniGPT/ml-engine/third_party/llama.cpp/build/bin/llama-cli",
     "n_threads": 8,
     "n_ctx": 1024,
