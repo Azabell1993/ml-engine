@@ -86,7 +86,6 @@ python benchmark_compare.py --runs 30 --warmups 3
 ## 4. CLI 결과 형태 (예시)
 
 > 실제 결과
-
 ```
 (venv) mac@azabell-mac benchmark % python benchmark_compare.py 
 
@@ -100,14 +99,37 @@ runs=9 | success=100.0% | valid=100.0%
 latency ms -> mean:887.69 p50:752.60 p95:2084.21 p99:2084.21 min:643.75 max:2084.21 std:428.23
 tokens/s -> mean:41.87 p50:43.85 p95:51.26
 /Users/mac/Desktop/workspace/miniGPT/ml-engine/benchmark/benchmark_compare.py:361: MatplotlibDeprecationWarning: The 'labels' parameter of boxplot() has been renamed 'tick_labels' since Matplotlib 3.9; support for the old name will be dropped in 3.11.
-  plt.boxplot(data, labels=sorted(df["service"].unique()), showfliers=False)
+    plt.boxplot(data, labels=sorted(df["service"].unique()), showfliers=False)
 Tables & figures saved: ./bench_results_20250824_221650/paper_table.csv ./bench_results_20250824_221650/paper_table.md ./bench_results_20250824_221650/latency_cdf.png ./bench_results_20250824_221650/latency_box.png ./bench_results_20250824_221650/tokens_per_sec_bar.png
 
 Artifacts saved to: /Users/mac/Desktop/workspace/miniGPT/ml-engine/benchmark/bench_results_20250824_221650
 ```
 
-각 항목 설명
-	•	runs: 통계에 포함된 측정 횟수(워밍업 제외).  
+---
+#### 결과 해석
+
+- **Deepseek gguf 및 llama.cpp 기반 로컬 LLM 성능 분석**  
+    - Deepseek gguf 포맷의 모델과 llama.cpp 엔진을 활용하여, 오픈소스 기반 로컬 LLM의 실제 환경 성능을 정량적으로 평가합니다.  
+    - Deepseek gguf는 경량화된 모델 포맷과 다양한 하드웨어 지원을 제공하여, 로컬 환경에서 효율적인 LLM 실행이 가능함을 확인할 수 있습니다.  
+    - 상용 서비스(ChatGPT)와의 비교를 통해, 하드웨어 사양 및 파라미터 최적화가 성능에 미치는 영향을 체계적으로 분석할 수 있습니다.
+
+- **Local ml-engine (Deepseek gguf + llama.cpp)**  
+    - 평균 지연시간(latency)은 약 26.7초로, ChatGPT 4.0 Web 대비 현저히 높게 나타납니다.  
+    - p95/p99 분위수(46.4초)에서 테일 레이턴시가 급격히 증가하여, 일부 요청에서 비정상적으로 긴 응답 지연이 발생함을 확인할 수 있습니다.  
+    - 토큰 생성 속도는 평균 5.12 tokens/s로, 상용 서비스 대비 처리량이 크게 제한적입니다.  
+    - valid 비율(77.8%)이 100%에 미치지 못해, 출력 형식 검증을 일부 통과하지 못한 사례가 존재합니다.
+
+- **ChatGPT 4.0 Web**  
+    - 평균 지연시간은 0.89초로 매우 우수하며, p95/p99에서도 2초 내외로 안정적인 응답 특성을 보입니다.  
+    - 토큰 생성 속도는 평균 41.87 tokens/s로, 로컬 엔진 대비 약 8배 이상의 처리 성능을 기록합니다.  
+    - valid 비율이 100%로, 모든 출력이 요구 조건을 완벽히 충족합니다.
+
+- **종합 평가**  
+    - 본 벤치마크는 오픈소스 기반 로컬 LLM의 성능 한계를 객관적으로 진단하고, Deepseek gguf가 제공하는 경량화 및 하드웨어 최적화의 이점을 실무 환경에서 직접 체감할 수 있음을 보여줍니다.  
+    - 상용 서비스와의 격차를 수치로 확인함으로써, 실무 적용 시 기대치와 개선 방향을 명확히 설정할 수 있습니다.
+
+#### 각 항목 설명  
+	•	runs: 통계에 포함된 측정 횟수(워밍업 제외).    
 	•	success (%): HTTP 200 등 정상 응답 비율.  
 	•	valid (%): 출력이 “C++ Hello, World!” 단일 코드블록 규칙을 통과한 비율(형식 검증).  
 	•	latency ms  
