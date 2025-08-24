@@ -36,3 +36,11 @@ third_party/**/lib64/**
 *.so
 *.a
 *.dll
+
+# --- benchmark artifacts ---
+benchmark/**/*.json
+benchmark/**/*.csv
+benchmark/**/*.png
+benchmark/**/*.pdf
+benchmark/bench_results_*/
+benchmark/venv/
