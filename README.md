@@ -690,7 +690,7 @@ curl -sS -X POST http://localhost:18080/llm/generate \
 
 ### [추가 팁]
 
-- 데이터 차원 보정은 모델 구현(예: cnn_mnist::Model)이 NCHW(1채널) 전제를 가질 때만 필요합니다. 이미 MNIST DataSet이 {N,1,28,28}로 배치한다면 unsqueeze 블록은 건너뛰지만, 위처럼 조건부로 안전망을 두면 환경 차이(C++ API 버전/커스텀 Dataset)에서도 안전합니다.
+- 데이터 차원 보정은 모델 구현(예: cnn_mnist::Model)이 NCHW(1채널) 전제를 가질 때만 필요합니다. 이미 MNIST DataSet이 {N,1,28,28}로 배치한다면 unsqueeze 블록은 건너뛰지만, 위처럼 조건부로 안전망을 두면 환경 차이(C++ API 버전/커스텀 Dataset)에서도 안전합니다.  
 - macOS CPU에서 num_workers>0일 때 fork 제약으로 드물게 문제가 생기면 cfg.num_workers=0로 낮춰보세요.
 
 </details>
@@ -1012,10 +1012,6 @@ flowchart LR
 #### 4. 모델 저장소 (Model Registry)
 - **GGUF**  
   AI가 답변할 수 있도록 훈련된 최종 모델 파일.
-- **Tokenizer.json**  
-  문장을 AI가 이해할 수 있는 토큰(단어 조각)으로 변환하는 사전.
-- **Presets.json**  
-  미리 저장된 대화 스타일이나 설정 값.
 
 ---
 
