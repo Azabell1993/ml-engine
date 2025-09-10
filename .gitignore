@@ -52,3 +52,8 @@ third_party/libtorch.zip
 third_party/llama.cpp/build/
 models/*.gguf
 data/mnist/*
+third_party/libtorch/
+third_party/libtorch.zip
+third_party/llama.cpp/build/
+models/*.gguf
+data/mnist/*
