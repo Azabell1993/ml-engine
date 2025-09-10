@@ -1,0 +1,54 @@
+=== CPU/메모리 ===
+Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
+Physical CPUs: 6, Logical: 12
+Memory: 32 GB
+
+=== macOS ===
+ProductName:		macOS
+ProductVersion:		15.6
+BuildVersion:		24G84
+
+=== GPU ===
+Graphics/Displays:
+
+    Intel UHD Graphics 630:
+
+      Chipset Model: Intel UHD Graphics 630
+      Type: GPU
+      Bus: Built-In
+      VRAM (Dynamic, Max): 1536 MB
+      Vendor: Intel
+      Device ID: 0x3e9b
+      Revision ID: 0x0000
+      Automatic Graphics Switching: Supported
+      gMux Version: 5.0.0
+      Metal Support: Metal 3
+
+    AMD Radeon Pro 5300M:
+
+      Chipset Model: AMD Radeon Pro 5300M
+      Type: GPU
+      Bus: PCIe
+      PCIe Lane Width: x16
+      VRAM (Total): 4 GB
+      Vendor: AMD (0x1002)
+      Device ID: 0x7340
+      Revision ID: 0x0043
+      ROM Revision: 113-D3220E-190
+      VBIOS Version: 113-D32207P1-020
+      Option ROM Version: 113-D32207P1-020
+      EFI Driver Version: 01.A1.190
+      Automatic Graphics Switching: Supported
+      gMux Version: 5.0.0
+      Metal Support: Metal 3
+      Displays:
+        Color LCD:
+          Display Type: Built-In Retina LCD
+          Resolution: 3072 x 1920 Retina
+          Framebuffer Depth: 24-Bit Color (ARGB8888)
+          Main Display: Yes
+          Mirror: Off
+          Online: Yes
+          Automatically Adjust Brightness: Yes
+          Connection Type: Internal
+

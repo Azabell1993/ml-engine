@@ -8,7 +8,7 @@ mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_PREFIX_PATH=../third_party/libtorch \
       -DTorch_DIR=../third_party/libtorch/share/cmake/Torch \
-      -DCMAKE_OSX_ARCHITECTURES=arm64 \
+      -DCMAKE_OSX_ARCHITECTURES=x86_64 \
       ..
 
 cmake --build . -j

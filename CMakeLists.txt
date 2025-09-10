@@ -3,7 +3,7 @@ project(ml_engine LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OSX_ARCHITECTURES arm64)
+# set(CMAKE_OSX_ARCHITECTURES arm64)
 set(CMAKE_BUILD_TYPE Release)
 
 # LibTorch
@@ -37,14 +37,16 @@ target_include_directories(ml_engine PRIVATE
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/third_party/libtorch/include
   ${CMAKE_SOURCE_DIR}/third_party/libtorch/include/torch/csrc/api/include
+  ${CMAKE_SOURCE_DIR}/third_party/crow/include 
 )
+
+target_compile_definitions(ml_engine PRIVATE CROW_USE_BOOST)
 
 # 링크
 target_link_libraries(ml_engine PRIVATE
   ${TORCH_LIBRARIES}
   Threads::Threads
 )
-
 # if (OpenMP_CXX_FOUND)
 #   target_link_libraries(ml_engine PRIVATE OpenMP::OpenMP_CXX)
 # endif()
