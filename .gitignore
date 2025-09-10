@@ -47,3 +47,8 @@ benchmark/**/*.png
 benchmark/**/*.pdf
 benchmark/bench_results_*/
 benchmark/venv/
+third_party/libtorch/
+third_party/libtorch.zip
+third_party/llama.cpp/build/
+models/*.gguf
+data/mnist/*
