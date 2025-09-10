@@ -31,7 +31,11 @@ runs/**/checkpoints/**
 data/**
 
 # --- vendor binaries ---
-third_party/
+third_party/libtorch/
+third_party/libtorch.zip
+third_party/llama.cpp/build/
+models/*.gguf
+data/mnist/*
 third_party/**/build/**
 third_party/**/bin/**
 third_party/**/lib/**
