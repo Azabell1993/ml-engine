@@ -31,6 +31,7 @@ runs/**/checkpoints/**
 data/**
 
 # --- vendor binaries ---
+third_party/
 third_party/**/build/**
 third_party/**/bin/**
 third_party/**/lib/**
