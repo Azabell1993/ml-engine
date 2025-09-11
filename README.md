@@ -394,6 +394,98 @@ curl -sS -X POST http://localhost:18080/llm/generate \
 }
 ```
 
+### Intel Mac Simulation
+
+#### Equipment Info
+
+```
+mac $ system_profiler SPDisplaysDataType | egrep -i 'Chipset Model|Vendor|VRAM|Metal'
+
+      Chipset Model: Intel UHD Graphics 630
+      VRAM (Dynamic, Max): 1536 MB
+      Vendor: Intel
+      Metal Support: Metal 3
+      Chipset Model: AMD Radeon Pro 5300M
+      VRAM (Total): 4 GB
+      Vendor: AMD (0x1002)
+      Metal Support: Metal 3
+```
+
+#### Request
+```json
+curl -sS -X POST http://localhost:18080/llm/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "backend": "llama",      
+    "prompt": "RUST 언어를 활용하여서  helloworld를 출력하는 코드를 단일 블록으로만 답해줘.",  
+    "llama_exec_path": "/Users/azabell/Desktop/workspace/ml-engine/third_party/llama.cpp/build/bin/llama-cli",
+    "n_threads": 10,                                                        
+    "n_ctx": 1024,                                                                  
+    "temperature": 0.7,
+    "top_k": 40,
+    "top_p": 0.95,
+    "extra_args": [
+      "-m","/Users/azabell/Desktop/workspace/ml-engine/models/deepseek-coder-v2-lite-instruct-q4_k_m.gguf",
+      "-c","1024",
+      "-b","256",
+      "--simple-io",
+      "-no-cnv",
+      "-n","64",
+      "-ngl","12",
+      "--seed","42",
+      "--repeat-penalty","1.1",
+      "--repeat-last-n","256"
+    ]
+  }' | jq .
+```
+
+#### Response
+```json
+{
+  "engine": "llama",
+  "output": "RUST 언어를 활용하여서  helloworld를 출력하는 코드를 단일 블록으로만 답해줘.\n\nfn main() {\n    println!(\"{}\", if true {\"Hello, world!\"} else {\"Goodbye, world!\"});\n} [end of text]\n\n\n",
+  "params": {
+    "extra_args": [
+      "-m",
+      "/Users/azabell/Desktop/workspace/ml-engine/models/deepseek-coder-v2-lite-instruct-q4_k_m.gguf",
+      "-c",
+      "1024",
+      "-b",
+      "256",
+      "--simple-io",
+      "-no-cnv",
+      "-n",
+      "64",
+      "-ngl",
+      "12",
+      "--seed",
+      "42",
+      "--repeat-penalty",
+      "1.1",
+      "--repeat-last-n",
+      "256"
+    ],
+    "n_ctx": 1024,
+    "n_threads": 10,
+    "temperature": 0.699999988079071,
+    "top_k": 40,
+    "top_p": 0.949999988079071
+  },
+  "prompt": "RUST 언어를 활용하여서  helloworld를 출력하는 코드를 단일 블록으로만 답해줘."
+}
+```
+
+### 인자 차이
+| 옵션 | 첫 번째 cURL 예시 | 두 번째 cURL 예시 | 의미/영향 |
+|------|------------------|------------------|-----------|
+| **-ngl** | 24 | 12 | GPU/Metal 가속 레이어 개수. 값이 클수록 더 많은 레이어를 GPU로 올려 연산 → 24가 12보다 GPU 사용량·속도 ↑ / 메모리 사용량도 ↑ |
+| **-b** | 1024 | 256 | 배치(batch) 크기. 토큰 생성 시 한 번에 처리하는 토큰 수. 큰 값(1024)은 메모리 많이 쓰지만 처리 속도 향상 가능 |
+| **-n** | 128 | 64 | 최대 출력 토큰 수. 128은 더 긴 응답을 허용 |
+| **--seed** | (없음) | 42 | 난수 시드 고정 → 재실행 시 동일한 출력 재현 |
+| **--repeat-penalty / --repeat-last-n** | (없음) | 1.1 / 256 | 반복 단어 억제 강도/최근 토큰 범위 설정. 두 번째는 출력 다양성 ↑ |
+| **그 외 공통** | `-m`, `-c 1024`, `--simple-io`, `-no-cnv` | 동일 | 모델 경로, 컨텍스트 길이, 간단 I/O, 변환 옵션 등 기본값 동일 |
+
+
 ---
 
 ## 8. 운영 체크리스트
